@@ -34,6 +34,7 @@ This roadmap is gated: a stage is not complete until its acceptance criteria are
 - [x] Add FTS5 lexical retrieval and regression tests for indexing, updates, and deletion.
 - [x] Add a structured JSON planner that validates tool IDs, risk metadata, allowed arguments, required arguments, and step budgets.
 - [x] Retrieve bounded lexical memory context for planning and mark it as untrusted reference data.
+- [x] Add a bounded read-only UTF-8 workspace file reader with traversal, reparse-point, size, and workspace-root checks.
 - [ ] Add working-memory lifecycle and memory consolidation.
 - [ ] Add retrieval evaluation benchmark and measure precision/recall.
 - [ ] Add research pipeline with source capture and contradiction handling.
