@@ -240,7 +240,7 @@ public sealed class SqliteMemoryStore : IMemoryStore
             throw new InvalidDataException($"Stored memory has unknown kind {kindValue}.");
         }
 
-        var confidence = reader.IsDBNull(4) ? null : reader.GetDouble(4);
+        double? confidence = reader.IsDBNull(4) ? null : reader.GetDouble(4);
         var createdAt = DateTimeOffset.ParseExact(
             reader.GetString(5), "O", CultureInfo.InvariantCulture, DateTimeStyles.None);
         var updatedAt = DateTimeOffset.ParseExact(
