@@ -29,6 +29,38 @@ public sealed record AgentTask
     public DateTimeOffset UpdatedAt { get; }
     public string? FailureReason { get; }
 
+    internal static AgentTask Rehydrate(
+        Guid id,
+        string goal,
+        AgentTaskStatus status,
+        DateTimeOffset createdAt,
+        DateTimeOffset updatedAt,
+        string? failureReason)
+    {
+        if (id == Guid.Empty)
+        {
+            throw new InvalidDataException("Stored task identifier cannot be empty.");
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(goal);
+        if (!Enum.IsDefined(status))
+        {
+            throw new InvalidDataException($"Stored task status '{status}' is invalid.");
+        }
+
+        if (updatedAt < createdAt)
+        {
+            throw new InvalidDataException("Stored task timestamps are inconsistent.");
+        }
+
+        if (status == AgentTaskStatus.Failed && string.IsNullOrWhiteSpace(failureReason))
+        {
+            throw new InvalidDataException("Failed tasks must contain a failure reason.");
+        }
+
+        return new AgentTask(id, goal, status, createdAt, updatedAt, failureReason);
+    }
+
     public static AgentTask Create(string goal, DateTimeOffset? now = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(goal);
@@ -82,9 +114,11 @@ public sealed record AgentTask
             (AgentTaskStatus.Planning, AgentTaskStatus.Running) => true,
             (AgentTaskStatus.Planning, AgentTaskStatus.Failed) => true,
             (AgentTaskStatus.Planning, AgentTaskStatus.Cancelled) => true,
+            (AgentTaskStatus.Planning, AgentTaskStatus.TimedOut) => true,
             (AgentTaskStatus.Running, AgentTaskStatus.Completed) => true,
             (AgentTaskStatus.Running, AgentTaskStatus.Failed) => true,
             (AgentTaskStatus.Running, AgentTaskStatus.Cancelled) => true,
+            (AgentTaskStatus.Running, AgentTaskStatus.TimedOut) => true,
             _ => false
         };
 }
