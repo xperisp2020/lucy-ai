@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Lucy.Core.Execution;
 using Lucy.Core.Memory;
 using Lucy.Core.Providers;
 using Lucy.Core.Tasks;
