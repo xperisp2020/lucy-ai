@@ -68,7 +68,10 @@ public sealed class SqliteAgentAuditStoreTests
             await using var update = connection.CreateCommand();
             update.CommandText = "UPDATE agent_audit_events SET detail = 'tampered' WHERE id = $id;";
             update.Parameters.AddWithValue("$id", auditEvent.Id.ToString("D"));
-            await Assert.ThrowsAsync<SqliteException>(() => update.ExecuteNonQueryAsync());
+            await Assert.ThrowsAsync<SqliteException>(async () =>
+            {
+                await update.ExecuteNonQueryAsync();
+            });
 
             await using var delete = connection.CreateCommand();
             delete.CommandText = "DELETE FROM agent_audit_events WHERE id = $id;";
