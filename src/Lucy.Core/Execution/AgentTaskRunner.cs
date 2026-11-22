@@ -1,3 +1,4 @@
+using Lucy.Core.Auditing;
 using Lucy.Core.Planning;
 using Lucy.Core.Policy;
 using Lucy.Core.Tasks;
@@ -7,22 +8,25 @@ namespace Lucy.Core.Execution;
 
 /// <summary>
 /// Runs a planner-produced sequence with explicit time/step budgets, per-tool
-/// authorization, cancellation, and persisted lifecycle snapshots.
+/// authorization, cancellation, persisted lifecycle snapshots, and audit events.
 /// </summary>
 public sealed class AgentTaskRunner
 {
     private readonly IAgentTaskStore _taskStore;
+    private readonly IAgentAuditStore _auditStore;
     private readonly IAgentPlanner _planner;
     private readonly IToolPolicy _toolPolicy;
     private readonly AgentToolRegistry _tools;
 
     public AgentTaskRunner(
         IAgentTaskStore taskStore,
+        IAgentAuditStore auditStore,
         IAgentPlanner planner,
         IToolPolicy toolPolicy,
         AgentToolRegistry tools)
     {
         _taskStore = taskStore ?? throw new ArgumentNullException(nameof(taskStore));
+        _auditStore = auditStore ?? throw new ArgumentNullException(nameof(auditStore));
         _planner = planner ?? throw new ArgumentNullException(nameof(planner));
         _toolPolicy = toolPolicy ?? throw new ArgumentNullException(nameof(toolPolicy));
         _tools = tools ?? throw new ArgumentNullException(nameof(tools));
@@ -60,6 +64,8 @@ public sealed class AgentTaskRunner
 
         var task = AgentTask.Create(goal);
         await _taskStore.SaveAsync(task, cancellationToken).ConfigureAwait(false);
+        await RecordAsync(task, AgentAuditEventType.TaskCreated, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
 
         using var timeoutSource = new CancellationTokenSource(timeout);
         using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(
@@ -72,6 +78,8 @@ public sealed class AgentTaskRunner
         {
             task = task.TransitionTo(AgentTaskStatus.Planning);
             await _taskStore.SaveAsync(task, executionToken).ConfigureAwait(false);
+            await RecordAsync(task, AgentAuditEventType.PlanningStarted, cancellationToken: executionToken)
+                .ConfigureAwait(false);
 
             var plan = await _planner.CreatePlanAsync(task, executionToken)
                 .ConfigureAwait(false);
@@ -81,16 +89,25 @@ public sealed class AgentTaskRunner
                 throw new InvalidOperationException("Planner returned no step collection.");
             }
 
-            if (plan.Steps.Count > maximumSteps)
+            var steps = plan.Steps.ToArray();
+            if (steps.Length > maximumSteps)
             {
                 throw new InvalidOperationException(
-                    $"Plan contains {plan.Steps.Count} steps; limit is {maximumSteps}.");
+                    $"Plan exceeds the configured limit of {maximumSteps} steps.");
             }
+
+            await RecordAsync(
+                task,
+                AgentAuditEventType.PlanCreated,
+                detail: $"step_count={steps.Length}",
+                cancellationToken: executionToken).ConfigureAwait(false);
 
             task = task.TransitionTo(AgentTaskStatus.Running);
             await _taskStore.SaveAsync(task, executionToken).ConfigureAwait(false);
+            await RecordAsync(task, AgentAuditEventType.ExecutionStarted, cancellationToken: executionToken)
+                .ConfigureAwait(false);
 
-            foreach (var step in plan.Steps)
+            foreach (var step in steps)
             {
                 executionToken.ThrowIfCancellationRequested();
 
@@ -99,8 +116,7 @@ public sealed class AgentTaskRunner
 
                 if (!_tools.TryGet(request.ToolId, out var tool) || tool is null)
                 {
-                    throw new InvalidOperationException(
-                        $"Tool '{request.ToolId}' is not registered.");
+                    throw new InvalidOperationException("Plan references an unregistered tool.");
                 }
 
                 var authorization = await _toolPolicy.AuthorizeAsync(
@@ -108,8 +124,21 @@ public sealed class AgentTaskRunner
 
                 if (!authorization.IsAllowed)
                 {
-                    throw new UnauthorizedAccessException(authorization.Reason);
+                    await RecordAsync(
+                        task,
+                        AgentAuditEventType.ToolDenied,
+                        tool.Id,
+                        "policy_denied",
+                        executionToken).ConfigureAwait(false);
+                    throw new UnauthorizedAccessException("Tool execution was denied by policy.");
                 }
+
+                await RecordAsync(
+                    task, AgentAuditEventType.ToolAuthorized, tool.Id,
+                    "policy_allowed", executionToken).ConfigureAwait(false);
+                await RecordAsync(
+                    task, AgentAuditEventType.ToolStarted, tool.Id,
+                    cancellationToken: executionToken).ConfigureAwait(false);
 
                 var context = new ToolExecutionContext(task.Id, workspacePath, deadline);
                 var result = await tool.ExecuteAsync(
@@ -119,9 +148,18 @@ public sealed class AgentTaskRunner
 
                 if (!result.Succeeded)
                 {
-                    throw new InvalidOperationException(
-                        $"Tool '{tool.Id}' failed: {result.ErrorCode ?? "unspecified error"}.");
+                    await RecordAsync(
+                        task,
+                        AgentAuditEventType.ToolFailed,
+                        tool.Id,
+                        result.ErrorCode ?? "unspecified_error",
+                        CancellationToken.None).ConfigureAwait(false);
+                    throw new InvalidOperationException("Tool execution returned an unsuccessful result.");
                 }
+
+                await RecordAsync(
+                    task, AgentAuditEventType.ToolSucceeded, tool.Id,
+                    cancellationToken: CancellationToken.None).ConfigureAwait(false);
             }
 
             executionToken.ThrowIfCancellationRequested();
@@ -134,19 +172,43 @@ public sealed class AgentTaskRunner
 
             task = task.TransitionTo(terminalStatus);
             await _taskStore.SaveAsync(task, CancellationToken.None).ConfigureAwait(false);
+            await RecordAsync(
+                task,
+                terminalStatus == AgentTaskStatus.Cancelled
+                    ? AgentAuditEventType.TaskCancelled
+                    : AgentAuditEventType.TaskTimedOut,
+                detail: terminalStatus.ToString(),
+                cancellationToken: CancellationToken.None).ConfigureAwait(false);
             return new AgentRunResult(task, results.AsReadOnly());
         }
         catch (Exception exception)
         {
+            var failureCode = exception.GetType().Name;
             task = task.TransitionTo(
                 AgentTaskStatus.Failed,
-                failureReason: $"{exception.GetType().Name}: {exception.Message}");
+                failureReason: failureCode);
             await _taskStore.SaveAsync(task, CancellationToken.None).ConfigureAwait(false);
+            await RecordAsync(
+                task, AgentAuditEventType.TaskFailed, detail: failureCode,
+                cancellationToken: CancellationToken.None).ConfigureAwait(false);
             return new AgentRunResult(task, results.AsReadOnly());
         }
 
         task = task.TransitionTo(AgentTaskStatus.Completed);
         await _taskStore.SaveAsync(task, CancellationToken.None).ConfigureAwait(false);
+        await RecordAsync(
+            task, AgentAuditEventType.TaskCompleted,
+            cancellationToken: CancellationToken.None).ConfigureAwait(false);
         return new AgentRunResult(task, results.AsReadOnly());
     }
+
+    private Task RecordAsync(
+        AgentTask task,
+        AgentAuditEventType eventType,
+        string? toolId = null,
+        string? detail = null,
+        CancellationToken cancellationToken = default) =>
+        _auditStore.AppendAsync(
+            AgentAuditEvent.Create(task.Id, eventType, toolId, detail),
+            cancellationToken);
 }
