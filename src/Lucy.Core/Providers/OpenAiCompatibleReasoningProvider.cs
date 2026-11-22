@@ -36,12 +36,14 @@ public sealed class OpenAiCompatibleReasoningProvider : IReasoningProvider
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(request.Constraints);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Goal);
 
         if (request.Goal.Length > MaximumPromptCharacters ||
             (request.Context?.Length ?? 0) > MaximumPromptCharacters ||
             request.Constraints.Count > 100 ||
-            request.Constraints.Any(string.IsNullOrWhiteSpace))
+            request.Constraints.Any(constraint =>
+                string.IsNullOrWhiteSpace(constraint) || constraint.Length > 10_000))
         {
             throw new ArgumentException("Reasoning request exceeds supported input limits.", nameof(request));
         }
@@ -121,10 +123,14 @@ public sealed class OpenAiCompatibleReasoningProvider : IReasoningProvider
                 MaxDepth = 16
             });
 
-            if (!document.RootElement.TryGetProperty("choices", out var choices) ||
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object ||
+                !root.TryGetProperty("choices", out var choices) ||
                 choices.ValueKind != JsonValueKind.Array ||
                 choices.GetArrayLength() == 0 ||
+                choices[0].ValueKind != JsonValueKind.Object ||
                 !choices[0].TryGetProperty("message", out var responseMessage) ||
+                responseMessage.ValueKind != JsonValueKind.Object ||
                 !responseMessage.TryGetProperty("content", out var responseContent) ||
                 responseContent.ValueKind != JsonValueKind.String)
             {
