@@ -53,7 +53,7 @@ internal sealed class WorkspacePathGuard
 
         var normalized = relativePath
             .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
-            .Replace('\', Path.DirectorySeparatorChar);
+            .Replace('\\', Path.DirectorySeparatorChar);
 
         var segments = normalized.Split(
             Path.DirectorySeparatorChar,
