@@ -72,8 +72,8 @@ public sealed class SqliteAgentTaskRepository : IAgentTaskRepository
         command.Parameters.AddWithValue("$id", task.Id.ToString("D"));
         command.Parameters.AddWithValue("$goal", task.Goal);
         command.Parameters.AddWithValue("$status", (int)task.Status);
-        command.Parameters.AddWithValue("$created_at", task.CreatedAt.ToString("O", CultureInfo.InvariantCulture));
-        command.Parameters.AddWithValue("$updated_at", task.UpdatedAt.ToString("O", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$created_at", task.CreatedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$updated_at", task.UpdatedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$failure_reason", (object?)task.FailureReason ?? DBNull.Value);
 
         var affected = await command.ExecuteNonQueryAsync(cancellationToken)
@@ -199,10 +199,10 @@ public sealed class SqliteAgentTaskRepository : IAgentTaskRepository
             throw new InvalidDataException($"Stored task '{id}' has unknown status {statusValue}.");
         }
 
-        var createdAt = DateTimeOffset.Parse(
-            reader.GetString(3), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-        var updatedAt = DateTimeOffset.Parse(
-            reader.GetString(4), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        var createdAt = DateTimeOffset.ParseExact(
+            reader.GetString(3), "O", CultureInfo.InvariantCulture, DateTimeStyles.None);
+        var updatedAt = DateTimeOffset.ParseExact(
+            reader.GetString(4), "O", CultureInfo.InvariantCulture, DateTimeStyles.None);
         var failureReason = reader.IsDBNull(5) ? null : reader.GetString(5);
 
         return AgentTask.Rehydrate(
