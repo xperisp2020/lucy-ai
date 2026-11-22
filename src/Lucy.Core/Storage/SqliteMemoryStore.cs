@@ -136,7 +136,7 @@ public sealed class SqliteMemoryStore : IMemoryStore
         command.CommandText = """
             SELECT e.id, e.kind, e.content, e.source, e.confidence, e.created_at, e.updated_at
             FROM memory_entries_fts
-            INNER JOIN memory_entries AS e ON e.id = f.id
+            INNER JOIN memory_entries AS e ON e.id = memory_entries_fts.id
             WHERE memory_entries_fts MATCH $query
               AND ($kind IS NULL OR e.kind = $kind)
             ORDER BY bm25(memory_entries_fts), e.updated_at DESC
