@@ -39,7 +39,7 @@ internal sealed class WorkspacePathGuard
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
 
         if (Path.IsPathRooted(relativePath) ||
-            relativePath.Contains(':', StringComparison.Ordinal) ||
+            relativePath.Contains(':') ||
             relativePath.Any(char.IsControl))
         {
             throw new UnauthorizedAccessException("Only plain relative workspace paths are allowed.");
