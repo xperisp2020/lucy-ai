@@ -6,7 +6,7 @@ LUCY AI is an experimental autonomous-assistant project inspired by the fictiona
 
 **Current stage:** Stage 1 — reliable core foundation (in progress).
 
-The repository now contains the first executable .NET core library, lifecycle and policy contracts, deterministic unit tests, and a Windows CI workflow. Persistent storage, orchestration, model adapters, and the desktop interface are not implemented yet.
+The repository now contains an executable .NET core library, bounded task orchestration, per-tool authorization, a SQLite task repository, deterministic unit tests, and a Windows CI workflow. Model adapters, semantic/episodic memory, and the desktop interface are not implemented yet.
 
 ## Vision
 
@@ -38,7 +38,7 @@ The CI workflow builds and tests on a current Windows GitHub-hosted runner. That
 
 ## Repository layout
 
-- `src/Lucy.Core/` — domain and application contracts.
+- `src/Lucy.Core/` — domain, orchestration, policy, tool, and SQLite persistence components.
 - `tests/Lucy.Core.Tests/` — deterministic unit tests.
 - `docs/ARCHITECTURE.md` — system boundaries and proposed components.
 - `docs/ROADMAP.md` — staged implementation and acceptance gates.
