@@ -7,19 +7,22 @@ This roadmap is gated: a stage is not complete until its acceptance criteria are
 - [x] Confirm repository access, owner, default branch, and initial contents.
 - [x] Record the project vision, boundaries, architecture, and safety principles.
 - [x] Record the Windows/.NET compatibility issue.
-- [ ] Decide supported Windows versions and the runtime/UI framework.
-- [ ] Add solution, projects, formatting/analyzer configuration, and CI.
-- [ ] Establish baseline build and test workflow.
+- [x] Select .NET 10 LTS for the platform-neutral core library.
+- [x] Add solution, core project, test project, formatting/analyzer baseline, and Windows CI.
+- [ ] Verify the first CI run and resolve any failures.
 
-**Exit gate:** clean checkout builds reproducibly on the declared supported environment; CI runs tests.
+**Exit gate:** clean checkout builds reproducibly on the declared core target; CI runs tests.
 
 ## Stage 1 — Reliable core
 
-- Agent task model and state machine.
-- Cancellation, deadlines, retry budgets, and structured events.
-- Provider abstraction with mock provider for deterministic tests.
-- Policy engine and typed tool contracts.
-- SQLite persistence and migrations.
+- [x] Immutable task model and bounded lifecycle transitions.
+- [x] Vendor-neutral reasoning-provider contract.
+- [x] Typed tool request/result/context contracts.
+- [x] Deny-by-default tool authorization boundary.
+- [x] Deterministic tests for task transitions and policy denial.
+- [ ] Add task orchestration, deadlines, cancellation, and retry budgets.
+- [ ] Add structured event/audit contracts.
+- [ ] Add SQLite persistence and schema migrations.
 
 **Exit gate:** integration tests prove task lifecycle, persistence, cancellation, policy denial, and provider failure handling.
 
