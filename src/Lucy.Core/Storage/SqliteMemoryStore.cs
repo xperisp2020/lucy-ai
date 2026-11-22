@@ -135,7 +135,7 @@ public sealed class SqliteMemoryStore : IMemoryStore
         await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT e.id, e.kind, e.content, e.source, e.confidence, e.created_at, e.updated_at
-            FROM memory_entries_fts AS f
+            FROM memory_entries_fts
             INNER JOIN memory_entries AS e ON e.id = f.id
             WHERE memory_entries_fts MATCH $query
               AND ($kind IS NULL OR e.kind = $kind)
