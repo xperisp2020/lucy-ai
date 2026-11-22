@@ -1,12 +1,12 @@
 # LUCY AI
 
-LUCY AI is an experimental, Windows-oriented autonomous assistant project inspired by the fictional system in *Lucy* (2014). The goal is to build the closest technically feasible software system—not to claim fictional or scientifically unsupported abilities.
+LUCY AI is an experimental autonomous-assistant project inspired by the fictional system in *Lucy* (2014). The goal is to build the closest technically feasible software system—not to claim fictional or scientifically unsupported abilities.
 
 ## Project status
 
-**Stage:** architecture and engineering foundation.
+**Current stage:** Stage 1 — reliable core foundation (in progress).
 
-The repository currently contains the initial architecture, constraints, roadmap, and contribution/security guidance. Runtime capabilities are not implemented yet.
+The repository now contains an executable .NET core library, bounded task orchestration, per-tool authorization, a SQLite task repository, deterministic unit tests, and a Windows CI workflow. Model adapters, semantic/episodic memory, and the desktop interface are not implemented yet.
 
 ## Vision
 
@@ -30,23 +30,34 @@ This project does **not** claim consciousness, human-equivalent understanding, t
 5. Self-improvement means controlled changes to plans, prompts, tools, and code—not self-modification of model weights.
 6. Tests and measured results are required; never describe an unrun test as passing.
 
-## Platform decision
+## Platform and runtime
 
-The initial target environment is Windows. The owner's current workstation is Windows 10 Pro (22H2), with .NET SDK 8.0.428 and .NET 8/10 runtimes. Microsoft currently lists modern .NET support on Windows 10 as limited to LTSC/Enterprise editions; Windows 10 Pro is outside that support matrix. The project therefore records the platform/runtime choice as an open decision rather than silently selecting an unsupported target.
+The first implementation slice targets the cross-platform .NET 10 LTS core library. The Windows desktop framework and supported Windows baseline remain open decisions. The owner's reported Windows 10 Pro workstation is outside Microsoft's currently listed Windows 10 editions supported by modern .NET; therefore this repository does not yet claim that the application is supported on that workstation.
 
-See [Architecture](docs/ARCHITECTURE.md), [Roadmap](docs/ROADMAP.md), and [Platform decision](docs/decisions/0001-platform-and-runtime.md).
+The CI workflow builds and tests on a current Windows GitHub-hosted runner. That verifies the core against the runner environment, not the owner's local Windows 10 Pro machine.
 
 ## Repository layout
 
+- `src/Lucy.Core/` — domain, orchestration, policy, tool, and SQLite persistence components.
+- `tests/Lucy.Core.Tests/` — deterministic unit tests.
 - `docs/ARCHITECTURE.md` — system boundaries and proposed components.
 - `docs/ROADMAP.md` — staged implementation and acceptance gates.
 - `docs/decisions/` — documented engineering decisions.
-- `SECURITY.md` — security reporting and safety boundaries.
-- `CONTRIBUTING.md` — development and verification rules.
+- `.github/workflows/ci.yml` — Windows CI build and test.
+
+## Local development
+
+Install the .NET 10 SDK (the repository pins SDK 10.0.404 in `global.json`), then run:
+
+```powershell
+dotnet restore LUCY.slnx
+dotnet build LUCY.slnx --configuration Release
+dotnet test LUCY.slnx --configuration Release
+```
 
 ## Status and verification
 
-No executable application or automated test suite has been added yet. The next implementation gate is to resolve the supported Windows/runtime target, then establish the solution structure and CI before adding agent capabilities.
+A successful local build/test has not yet been claimed. Check the latest GitHub Actions run for the authoritative CI result.
 
 ## License
 

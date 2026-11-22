@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Lucy.Core/Lucy.Core.csproj" />
+  <Project Path="tests/Lucy.Core.Tests/Lucy.Core.Tests.csproj" />
+</Solution>

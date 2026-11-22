@@ -20,7 +20,11 @@ The system should remain useful when an optional model provider or network conne
 - **Audit/telemetry:** structured events for decisions, tool calls, approvals, failures, and performance.
 - **Storage:** SQLite as the initial durable store; schema migrations and export/import are required.
 
-## 3. Cognitive cycle
+## 3. Current implementation slice
+
+The first executable slice includes immutable task snapshots, a bounded task runner, a planner interface, a tool registry, per-step authorization, and a SQLite-backed task repository. Tool authorization denies by default. Task persistence currently stores task lifecycle snapshots; it is not yet a general-purpose memory system. Timeouts and caller cancellation are represented as distinct terminal task states. The runner does not provide automatic retries, process isolation, or recovery of in-flight tool side effects yet.
+
+## 4. Cognitive cycle
 
 1. Receive a goal and normalize constraints.
 2. Retrieve relevant memory and known constraints.
@@ -34,7 +38,7 @@ The system should remain useful when an optional model provider or network conne
 
 A model-generated statement is not proof that an action happened. Tool responses, file state, test output, and external confirmations are the evidence.
 
-## 4. Memory model
+## 5. Memory model
 
 - **Working:** short-lived context for the active task.
 - **Episodic:** timestamped tasks, actions, observations, and outcomes.
@@ -44,7 +48,7 @@ A model-generated statement is not proof that an action happened. Tool responses
 
 Memory writes should be versioned where practical. Users must be able to inspect, correct, export, and delete stored information. Sensitive data should not be retained by default.
 
-## 5. Autonomy and safety
+## 6. Autonomy and safety
 
 Default policy:
 
@@ -57,7 +61,7 @@ Default policy:
 
 The model must not be the sole authority deciding whether its own high-impact action is safe.
 
-## 6. Reliability and evaluation
+## 7. Reliability and evaluation
 
 Every capability needs:
 - a contract and explicit failure modes;
@@ -69,13 +73,13 @@ Every capability needs:
 
 Track task completion, factual/source accuracy, tool success, recovery rate, memory retrieval precision, latency, cost, and regression rate. Do not optimize a single score at the expense of safety or correctness.
 
-## 7. Proposed technology direction
+## 8. Proposed technology direction
 
 C# is the initial implementation language. SQLite is the initial durable store. The desktop framework and .NET target remain an explicit decision because the current owner workstation is Windows 10 Pro and the current Microsoft support matrix for modern .NET on Windows 10 excludes Pro editions.
 
 Avoid hard-coding provider SDKs into domain logic. Use interfaces and adapters. Select embedding/vector retrieval only after representative tests show a measurable benefit over simpler SQLite/full-text retrieval.
 
-## 8. Initial non-goals
+## 9. Initial non-goals
 
 - Training a foundation model from scratch.
 - Claiming consciousness or human-like subjective experience.
