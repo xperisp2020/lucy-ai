@@ -73,6 +73,32 @@ public sealed class AgentTaskRunnerTests
         Assert.Equal(0, tool.ExecutionCount);
     }
 
+    [Fact]
+    public async Task RunAsync_ReportsTimeoutSeparatelyFromUserCancellation()
+    {
+        var store = new InMemoryTaskStore();
+        var runner = CreateRunner(store, new BlockingPlanner(), new AllowAllPolicy(), []);
+
+        var result = await runner.RunAsync(
+            "timeout goal", Path.GetFullPath("."), TimeSpan.FromMilliseconds(50), 1);
+
+        Assert.Equal(AgentTaskStatus.TimedOut, result.Task.Status);
+    }
+
+    [Fact]
+    public async Task RunAsync_ReportsCallerCancellation()
+    {
+        var store = new InMemoryTaskStore();
+        var runner = CreateRunner(store, new BlockingPlanner(), new AllowAllPolicy(), []);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+
+        var result = await runner.RunAsync(
+            "cancel goal", Path.GetFullPath("."), TimeSpan.FromSeconds(5), 1,
+            cancellation.Token);
+
+        Assert.Equal(AgentTaskStatus.Cancelled, result.Task.Status);
+    }
+
     private static AgentTaskRunner CreateRunner(
         IAgentTaskStore store,
         IAgentPlanner planner,
@@ -100,6 +126,17 @@ public sealed class AgentTaskRunnerTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(plan);
+        }
+    }
+
+    private sealed class BlockingPlanner : IAgentPlanner
+    {
+        public async Task<AgentPlan> CreatePlanAsync(
+            AgentTask task,
+            CancellationToken cancellationToken)
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return new AgentPlan([]);
         }
     }
 
