@@ -32,6 +32,8 @@ This roadmap is gated: a stage is not complete until its acceptance criteria are
 - [x] Add inspectable episodic, semantic, and procedural memory records with provenance.
 - [x] Add SQLite persistence, correction, bounded export retrieval, and explicit deletion.
 - [x] Add FTS5 lexical retrieval and regression tests for indexing, updates, and deletion.
+- [x] Add a structured JSON planner that validates tool IDs, risk metadata, allowed arguments, required arguments, and step budgets.
+- [x] Retrieve bounded lexical memory context for planning and mark it as untrusted reference data.
 - [ ] Add working-memory lifecycle and memory consolidation.
 - [ ] Add retrieval evaluation benchmark and measure precision/recall.
 - [ ] Add research pipeline with source capture and contradiction handling.
