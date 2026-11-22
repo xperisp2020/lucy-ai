@@ -124,13 +124,15 @@ public sealed class AgentTaskRunner
                 }
             }
 
-            task = task.TransitionTo(AgentTaskStatus.Completed);
-            await _taskStore.SaveAsync(task, CancellationToken.None).ConfigureAwait(false);
-            return new AgentRunResult(task, results.AsReadOnly());
+            executionToken.ThrowIfCancellationRequested();
         }
         catch (OperationCanceledException) when (executionToken.IsCancellationRequested)
         {
-            task = task.TransitionTo(AgentTaskStatus.Cancelled);
+            var terminalStatus = cancellationToken.IsCancellationRequested
+                ? AgentTaskStatus.Cancelled
+                : AgentTaskStatus.TimedOut;
+
+            task = task.TransitionTo(terminalStatus);
             await _taskStore.SaveAsync(task, CancellationToken.None).ConfigureAwait(false);
             return new AgentRunResult(task, results.AsReadOnly());
         }
@@ -142,5 +144,9 @@ public sealed class AgentTaskRunner
             await _taskStore.SaveAsync(task, CancellationToken.None).ConfigureAwait(false);
             return new AgentRunResult(task, results.AsReadOnly());
         }
+
+        task = task.TransitionTo(AgentTaskStatus.Completed);
+        await _taskStore.SaveAsync(task, CancellationToken.None).ConfigureAwait(false);
+        return new AgentRunResult(task, results.AsReadOnly());
     }
 }
