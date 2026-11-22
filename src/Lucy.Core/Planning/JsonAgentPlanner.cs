@@ -63,6 +63,11 @@ public sealed class JsonAgentPlanner : IAgentPlanner
             }
         }
 
+        if (definitions.Count > 50)
+        {
+            throw new ArgumentException("At most 50 tool definitions may be supplied.", nameof(toolDefinitions));
+        }
+
         _definitions = definitions;
         _memoryStore = memoryStore;
         _maximumSteps = maximumSteps;
@@ -138,16 +143,18 @@ public sealed class JsonAgentPlanner : IAgentPlanner
 
         string? toolId = null;
         JsonElement argumentsElement = default;
+        var hasTool = false;
         var hasArguments = false;
 
         foreach (var property in stepElement.EnumerateObject())
         {
             switch (property.Name)
             {
-                case "tool" when property.Value.ValueKind == JsonValueKind.String:
+                case "tool" when property.Value.ValueKind == JsonValueKind.String && !hasTool:
                     toolId = property.Value.GetString();
+                    hasTool = true;
                     break;
-                case "arguments" when property.Value.ValueKind == JsonValueKind.Object:
+                case "arguments" when property.Value.ValueKind == JsonValueKind.Object && !hasArguments:
                     argumentsElement = property.Value;
                     hasArguments = true;
                     break;
@@ -156,7 +163,8 @@ public sealed class JsonAgentPlanner : IAgentPlanner
             }
         }
 
-        if (string.IsNullOrWhiteSpace(toolId) ||
+        if (!hasTool ||
+            string.IsNullOrWhiteSpace(toolId) ||
             !_definitions.TryGetValue(toolId, out var definition) ||
             !_toolRegistry.TryGet(toolId, out _))
         {
@@ -198,9 +206,9 @@ public sealed class JsonAgentPlanner : IAgentPlanner
             builder.Append("- id: ").AppendLine(definition.Id);
             builder.Append("  description: ").AppendLine(definition.Description);
             builder.Append("  allowed_arguments: ")
-                .AppendLine(string.Join(", ", definition.AllowedArguments.Order(StringComparer.Ordinal)));
+                .AppendLine(string.Join(", ", definition.AllowedArguments.OrderBy(item => item, StringComparer.Ordinal)));
             builder.Append("  required_arguments: ")
-                .AppendLine(string.Join(", ", definition.RequiredArguments.Order(StringComparer.Ordinal)));
+                .AppendLine(string.Join(", ", definition.RequiredArguments.OrderBy(item => item, StringComparer.Ordinal)));
         }
 
         if (_memoryStore is null)
