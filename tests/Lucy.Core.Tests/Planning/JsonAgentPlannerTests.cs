@@ -1,3 +1,4 @@
+using Lucy.Core.Execution;
 using Lucy.Core.Memory;
 using Lucy.Core.Planning;
 using Lucy.Core.Providers;
@@ -96,10 +97,12 @@ public sealed class JsonAgentPlannerTests
             "file.read", "Read a file.", ToolRisk.Destructive, ["path"]);
 
         Assert.Throws<ArgumentException>(() =>
-            new JsonAgentPlanner(
+        {
+            _ = new JsonAgentPlanner(
                 new StubReasoningProvider("""{"steps":[]}"""),
                 registry,
-                [definition]));
+                [definition]);
+        });
     }
 
     private static JsonAgentPlanner CreatePlanner(
