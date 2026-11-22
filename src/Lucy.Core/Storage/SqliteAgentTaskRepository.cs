@@ -39,7 +39,7 @@ public sealed class SqliteAgentTaskRepository : IAgentTaskRepository
             DataSource = fullPath,
             Mode = SqliteOpenMode.ReadWriteCreate,
             Cache = SqliteCacheMode.Shared,
-            Pooling = true
+            Pooling = false
         };
 
         var repository = new SqliteAgentTaskRepository(builder.ToString());
@@ -133,6 +133,20 @@ public sealed class SqliteAgentTaskRepository : IAgentTaskRepository
     {
         await using var connection = await OpenConnectionAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        await using (var versionCommand = connection.CreateCommand())
+        {
+            versionCommand.CommandText = "PRAGMA user_version;";
+            var versionValue = await versionCommand.ExecuteScalarAsync(cancellationToken)
+                .ConfigureAwait(false);
+            var currentVersion = Convert.ToInt32(versionValue, CultureInfo.InvariantCulture);
+            if (currentVersion > 1)
+            {
+                throw new InvalidOperationException(
+                    $"Database schema version {currentVersion} is newer than this application supports.");
+            }
+        }
+
         await using var command = connection.CreateCommand();
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS agent_tasks (
