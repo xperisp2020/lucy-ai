@@ -40,7 +40,8 @@ public sealed record LucyAgentOptions(
             ? workspacePath
             : workspacePath + Path.DirectorySeparatorChar;
 
-        if (databasePath.StartsWith(workspacePrefix, comparison))
+        if (string.Equals(databasePath, workspacePath, comparison) ||
+            databasePath.StartsWith(workspacePrefix, comparison))
         {
             throw new ArgumentException(
                 "The SQLite database must be outside the readable workspace.",
