@@ -76,7 +76,10 @@ public sealed class SqliteAgentAuditStoreTests
             await using var delete = connection.CreateCommand();
             delete.CommandText = "DELETE FROM agent_audit_events WHERE id = $id;";
             delete.Parameters.AddWithValue("$id", auditEvent.Id.ToString("D"));
-            await Assert.ThrowsAsync<SqliteException>(() => delete.ExecuteNonQuery());
+            await Assert.ThrowsAsync<SqliteException>(async () =>
+            {
+                await delete.ExecuteNonQueryAsync();
+            });
         }
         finally
         {
