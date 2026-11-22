@@ -25,8 +25,13 @@ public sealed class AgentTaskRunnerTests
         Assert.Equal(AgentTaskStatus.Completed, result.Task.Status);
         Assert.Single(result.ToolResults);
         Assert.Equal(
-            [AgentTaskStatus.Pending, AgentTaskStatus.Planning,
-             AgentTaskStatus.Running, AgentTaskStatus.Completed],
+            new[]
+            {
+                AgentTaskStatus.Pending,
+                AgentTaskStatus.Planning,
+                AgentTaskStatus.Running,
+                AgentTaskStatus.Completed
+            },
             store.Snapshots.Select(snapshot => snapshot.Status));
         Assert.Equal(1, tool.ExecutionCount);
     }
