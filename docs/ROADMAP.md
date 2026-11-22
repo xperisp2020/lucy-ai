@@ -29,10 +29,13 @@ This roadmap is gated: a stage is not complete until its acceptance criteria are
 
 ## Stage 2 — Memory and research
 
-- Working and episodic memory.
-- Provenance-aware semantic records.
-- Search and retrieval evaluation using a small benchmark.
-- Research pipeline with source capture and contradiction handling.
+- [x] Add inspectable episodic, semantic, and procedural memory records with provenance.
+- [x] Add SQLite persistence, correction, bounded export retrieval, and explicit deletion.
+- [x] Add FTS5 lexical retrieval and regression tests for indexing, updates, and deletion.
+- [ ] Add working-memory lifecycle and memory consolidation.
+- [ ] Add retrieval evaluation benchmark and measure precision/recall.
+- [ ] Add research pipeline with source capture and contradiction handling.
+- [ ] Add semantic contradiction tracking and confidence calibration.
 
 **Exit gate:** memory survives restart, can be inspected/exported/deleted, and retrieval quality is measured.
 
