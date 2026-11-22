@@ -7,5 +7,6 @@ public enum AgentTaskStatus
     Running,
     Completed,
     Failed,
-    Cancelled
+    Cancelled,
+    TimedOut
 }
