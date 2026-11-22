@@ -16,6 +16,12 @@ internal sealed class WorkspacePathGuard
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
         _rootPath = Path.GetFullPath(workspaceRoot);
 
+        if (string.Equals(_rootPath, Path.GetPathRoot(_rootPath),
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Filesystem roots cannot be used as a workspace.", nameof(workspaceRoot));
+        }
+
         if (!Directory.Exists(_rootPath))
         {
             throw new DirectoryNotFoundException("Configured workspace directory does not exist.");
