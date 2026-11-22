@@ -10,12 +10,18 @@ public sealed class OpenAiCompatibleReasoningProviderTests
     [Fact]
     public async Task GenerateAsync_SendsBoundedChatRequestAndUsesRuntimeSecret()
     {
-        HttpRequestMessage? capturedRequest = null;
-        var handler = new StubHandler((request, _) =>
+        string? capturedAuthorization = null;
+        string? capturedBody = null;
+        Uri? capturedUri = null;
+        HttpMethod? capturedMethod = null;
+        var handler = new StubHandler(async (request, cancellationToken) =>
         {
-            capturedRequest = request;
-            return Task.FromResult(JsonResponse(
-                """{"choices":[{"message":{"content":"A careful answer."}}]}"""));
+            capturedAuthorization = request.Headers.Authorization?.ToString();
+            capturedBody = await request.Content!.ReadAsStringAsync(cancellationToken);
+            capturedUri = request.RequestUri;
+            capturedMethod = request.Method;
+            return JsonResponse(
+                """{"choices":[{"message":{"content":"A careful answer."}}]}""");
         });
 
         using var client = new HttpClient(handler);
@@ -35,15 +41,13 @@ public sealed class OpenAiCompatibleReasoningProviderTests
         Assert.Equal("A careful answer.", result.Content);
         Assert.Equal("openai-compatible", result.Provider);
         Assert.Equal("reasoner-model", result.Model);
-        Assert.NotNull(capturedRequest);
-        Assert.Equal(HttpMethod.Post, capturedRequest.Method);
+        Assert.Equal(HttpMethod.Post, capturedMethod);
         Assert.Equal(
             "https://example.test/v1/chat/completions",
-            capturedRequest.RequestUri!.ToString());
-        Assert.Equal("Bearer runtime-secret", capturedRequest.Headers.Authorization?.ToString());
+            capturedUri!.ToString());
+        Assert.Equal("Bearer runtime-secret", capturedAuthorization);
 
-        using var payload = JsonDocument.Parse(
-            await capturedRequest.Content!.ReadAsStringAsync());
+        using var payload = JsonDocument.Parse(capturedBody!);
         Assert.Equal("reasoner-model", payload.RootElement.GetProperty("model").GetString());
         Assert.Equal(2, payload.RootElement.GetProperty("messages").GetArrayLength());
     }
