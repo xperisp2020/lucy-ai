@@ -34,8 +34,8 @@ public sealed class JsonAgentPlannerTests
         var step = Assert.Single(plan.Steps);
         Assert.Equal("file.read", step.Request.ToolId);
         Assert.Equal("docs/README.md", step.Request.Arguments["path"]);
-        Assert.Contains("Retrieved memory", provider.LastRequest!.Context, StringComparison.Ordinal);
-        Assert.Contains("untrusted reference data", provider.LastRequest.Context, StringComparison.Ordinal);
+        Assert.Contains("Retrieved memory", provider.LastRequest!.Context!, StringComparison.Ordinal);
+        Assert.Contains("untrusted reference data", provider.LastRequest.Context!, StringComparison.Ordinal);
     }
 
     [Fact]
