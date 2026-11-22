@@ -56,6 +56,11 @@ public sealed class OpenAiCompatibleReasoningProvider : IReasoningProvider
 
         var apiKey = await _secretProvider.GetSecretAsync(
             _options.ApiKeyEnvironmentVariableName, cancellationToken).ConfigureAwait(false);
+        if (apiKey is { Length: > 4096 } ||
+            (apiKey?.Any(char.IsControl) ?? false))
+        {
+            throw new InvalidOperationException("Configured provider secret is invalid.");
+        }
 
         using var timeoutSource = new CancellationTokenSource(
             _options.RequestTimeout ?? TimeSpan.FromSeconds(60));
