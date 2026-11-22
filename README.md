@@ -6,7 +6,7 @@ LUCY AI is an experimental autonomous-assistant project inspired by the fictiona
 
 **Current stage:** Stage 1 — reliable core foundation (in progress).
 
-The repository now contains an executable .NET core library, bounded task orchestration, per-tool authorization, SQLite task persistence, an append-only audit trail, and inspectable episodic/semantic/procedural memory with FTS5 lexical retrieval. An OpenAI-compatible text reasoning adapter with runtime secret lookup is now available. A structured JSON planner now connects the reasoning provider to trusted tool definitions and retrieves relevant stored memory as explicitly untrusted context. Autonomous memory consolidation, embeddings/vector retrieval, real workspace tools, and the desktop interface are not implemented yet.
+The repository now contains an executable .NET core library, bounded task orchestration, per-tool authorization, SQLite task persistence, an append-only audit trail, and inspectable episodic/semantic/procedural memory with FTS5 lexical retrieval. An OpenAI-compatible text reasoning adapter with runtime secret lookup is now available. A structured JSON planner now connects the reasoning provider to trusted tool definitions and retrieves relevant stored memory as explicitly untrusted context. Autonomous memory consolidation, embeddings/vector retrieval, the desktop interface and isolated execution host are not implemented yet. The first concrete tool is a bounded, read-only UTF-8 workspace file reader; no shell or network tool is enabled.
 
 ## Vision
 
