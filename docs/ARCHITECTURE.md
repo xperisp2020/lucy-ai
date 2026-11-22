@@ -22,7 +22,7 @@ The system should remain useful when an optional model provider or network conne
 
 ## 3. Current implementation slice
 
-The first executable slice includes immutable task snapshots, a bounded task runner, a planner interface, a tool registry, per-step authorization, and a SQLite-backed task repository. Tool authorization denies by default. Task persistence currently stores task lifecycle snapshots; it is not yet a general-purpose memory system. Timeouts and caller cancellation are represented as distinct terminal task states. The runner does not provide automatic retries, process isolation, or recovery of in-flight tool side effects yet.
+The first executable slice includes immutable task snapshots, a bounded task runner, a planner interface, a tool registry, per-step authorization, a SQLite-backed task repository, and an append-only SQLite audit log. The runner records task lifecycle, plan size, authorization decisions, and tool outcomes without persisting prompts or raw tool output. Database triggers reject audit-event updates and deletes. Tool authorization denies by default. Task persistence currently stores task lifecycle snapshots; it is not yet a general-purpose memory system. Timeouts and caller cancellation are represented as distinct terminal task states. The runner does not provide automatic retries, process isolation, or recovery of in-flight tool side effects yet.
 
 ## 4. Cognitive cycle
 

@@ -1,3 +1,4 @@
+using Lucy.Core.Auditing;
 using Lucy.Core.Execution;
 using Lucy.Core.Planning;
 using Lucy.Core.Policy;
@@ -37,22 +38,59 @@ public sealed class AgentTaskRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_RecordsAuditEventsInExecutionOrder()
+    {
+        var taskStore = new InMemoryTaskStore();
+        var auditStore = new InMemoryAuditStore();
+        var tool = new StubTool("echo", new ToolResult(true, "ok"));
+        var runner = new AgentTaskRunner(
+            taskStore,
+            auditStore,
+            new StubPlanner(new AgentPlan([new PlannedToolCall(
+                new ToolRequest("echo", new Dictionary<string, string>()))])),
+            new AllowAllPolicy(),
+            new AgentToolRegistry([tool]));
+
+        var result = await runner.RunAsync(
+            "audited goal", Path.GetFullPath("."), TimeSpan.FromSeconds(10), 2);
+        var events = await auditStore.GetForTaskAsync(result.Task.Id, 100, CancellationToken.None);
+
+        Assert.Equal(
+            new[]
+            {
+                AgentAuditEventType.TaskCreated,
+                AgentAuditEventType.PlanningStarted,
+                AgentAuditEventType.PlanCreated,
+                AgentAuditEventType.ExecutionStarted,
+                AgentAuditEventType.ToolAuthorized,
+                AgentAuditEventType.ToolStarted,
+                AgentAuditEventType.ToolSucceeded,
+                AgentAuditEventType.TaskCompleted
+            },
+            events.Select(item => item.EventType));
+    }
+
+    [Fact]
     public async Task RunAsync_DeniesToolBeforeExecution()
     {
         var store = new InMemoryTaskStore();
         var tool = new StubTool("danger", new ToolResult(true, "should not run"));
-        var runner = CreateRunner(store, new StubPlanner(
-            new AgentPlan([new PlannedToolCall(
+        var audit = new InMemoryAuditStore();
+        var runner = new AgentTaskRunner(
+            store, audit,
+            new StubPlanner(new AgentPlan([new PlannedToolCall(
                 new ToolRequest("danger", new Dictionary<string, string>()))])),
             new DenyByDefaultToolPolicy(),
-            [tool]);
+            new AgentToolRegistry([tool]));
 
         var result = await runner.RunAsync(
             "denied goal", Path.GetFullPath("."), TimeSpan.FromSeconds(10), 3);
 
         Assert.Equal(AgentTaskStatus.Failed, result.Task.Status);
-        Assert.Contains("UnauthorizedAccessException", result.Task.FailureReason);
         Assert.Equal(0, tool.ExecutionCount);
+        var events = await audit.GetForTaskAsync(result.Task.Id, 100, CancellationToken.None);
+        Assert.Contains(events, item => item.EventType == AgentAuditEventType.ToolDenied);
+        Assert.Equal(AgentAuditEventType.TaskFailed, events[^1].EventType);
     }
 
     [Fact]
@@ -104,7 +142,7 @@ public sealed class AgentTaskRunnerTests
         IAgentPlanner planner,
         IToolPolicy policy,
         IEnumerable<IAgentTool> tools) =>
-        new(store, planner, policy, new AgentToolRegistry(tools));
+        new(store, new InMemoryAuditStore(), planner, policy, new AgentToolRegistry(tools));
 
     private sealed class InMemoryTaskStore : IAgentTaskStore
     {
@@ -115,6 +153,31 @@ public sealed class AgentTaskRunnerTests
             cancellationToken.ThrowIfCancellationRequested();
             Snapshots.Add(task);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class InMemoryAuditStore : IAgentAuditStore
+    {
+        private readonly List<AgentAuditEvent> _events = [];
+
+        public Task AppendAsync(AgentAuditEvent auditEvent, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _events.Add(auditEvent);
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<AgentAuditEvent>> GetForTaskAsync(
+            Guid taskId,
+            int maximumCount,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<AgentAuditEvent> result = _events
+                .Where(item => item.TaskId == taskId)
+                .Take(maximumCount)
+                .ToArray();
+            return Task.FromResult(result);
         }
     }
 

@@ -21,7 +21,7 @@ This roadmap is gated: a stage is not complete until its acceptance criteria are
 - [x] Deny-by-default tool authorization boundary.
 - [x] Deterministic tests for task transitions and policy denial.
 - [x] Add bounded task orchestration, deadlines, cancellation, and step budgets.
-- [ ] Add structured event/audit contracts.
+- [x] Add structured audit event contracts and an append-only SQLite audit log.
 - [x] Add SQLite task persistence, schema version tracking, lookup, and stale-write protection.
 - [ ] Add recovery semantics and integration tests for process interruption.
 
